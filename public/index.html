@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LinkedIn Me | Personal AI Chatbot</title>
+  <meta name="description" content="A local AI chatbot that answers questions about me using my LinkedIn profile." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Navigation Bar -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+            <rect x="2" y="9" width="4" height="12"/>
+            <circle cx="4" cy="4" r="2"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>LinkedIn Me <span>AI</span></h1>
+          <p class="subtitle">Personal Portfolio Assistant</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="status-indicator" id="profileStatusIndicator">
+          <span class="status-dot"></span>
+          <span class="status-label" id="statusLabel">Checking profile...</span>
+        </div>
+        <button id="toggleSidebarBtn" class="btn btn-secondary icon-btn" title="Toggle Knowledge Base">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <line x1="9" y1="3" x2="9" y2="21"/>
+          </svg>
+          <span class="btn-text">Knowledge Base</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace Layout -->
+    <main class="main-layout">
+      <!-- Left Sidebar: Profile Source & Markdown Preview -->
+      <aside class="sidebar" id="sidebarPanel">
+        <div class="sidebar-header">
+          <h2>Knowledge Source</h2>
+          <span class="badge" id="sourceBadge">data/linkedin_profile.md</span>
+        </div>
+
+        <!-- Input Switcher Tabs -->
+        <div class="tabs">
+          <button class="tab-btn active" id="tabUploadBtn" data-tab="tab-upload">Upload File</button>
+          <button class="tab-btn" id="tabUrlBtn" data-tab="tab-url">Webpage URL</button>
+        </div>
+
+        <!-- Upload File Tab Content -->
+        <div class="tab-pane active" id="tab-upload">
+          <div class="drop-zone" id="dropZone">
+            <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt,.html,.htm,.md" class="file-input-hidden" />
+            <div class="drop-zone-icon">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <p class="drop-zone-text"><strong>Click to upload</strong> or drag & drop</p>
+            <p class="drop-zone-hint">PDF, DOCX, DOC, TXT, HTML, or MD (Max 15MB)</p>
+          </div>
+          <div class="selected-file-info" id="selectedFileInfo" style="display: none;">
+            <span class="file-name" id="selectedFileName">file.pdf</span>
+            <button class="btn btn-primary btn-sm" id="submitFileBtn">Convert & Save</button>
+          </div>
+        </div>
+
+        <!-- Webpage URL Tab Content -->
+        <div class="tab-pane" id="tab-url">
+          <form id="urlForm" class="url-input-group">
+            <label for="urlInput">Public Profile or Portfolio URL</label>
+            <div class="input-with-button">
+              <input 
+                type="url" 
+                id="urlInput" 
+                placeholder="https://example.com/profile or resume URL" 
+                required 
+              />
+              <button type="submit" class="btn btn-primary" id="fetchUrlBtn">Fetch</button>
+            </div>
+            <p class="form-tip">
+              💡 <em>Note:</em> If LinkedIn or the webpage requires login, download as PDF/HTML and use the Upload File tab.
+            </p>
+          </form>
+        </div>
+
+        <!-- Conversion Loader -->
+        <div class="processing-loader" id="processingLoader" style="display: none;">
+          <div class="spinner"></div>
+          <span id="processingText">Extracting text & formatting Markdown...</span>
+        </div>
+
+        <!-- Markdown Preview Section -->
+        <div class="markdown-preview-wrapper">
+          <div class="preview-header">
+            <h3>Markdown Preview</h3>
+            <div class="preview-actions">
+              <button id="copyMarkdownBtn" class="btn-link" title="Copy Raw Markdown">Copy</button>
+              <button id="refreshProfileBtn" class="btn-link" title="Reload from disk">Refresh</button>
+            </div>
+          </div>
+          <div class="markdown-viewer" id="markdownViewer">
+            <pre><code id="markdownCode">Loading profile...</code></pre>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Right Main: Chat Area -->
+      <section class="chat-section">
+        <!-- Chat Header -->
+        <div class="chat-header">
+          <div class="chat-agent-info">
+            <div class="agent-avatar">AI</div>
+            <div>
+              <div class="agent-name">LinkedIn AI Persona</div>
+              <div class="agent-desc">Speaks in 1st person • Strictly grounded in profile data</div>
+            </div>
+          </div>
+          <div class="chat-controls">
+            <button id="clearChatBtn" class="btn btn-secondary btn-sm" title="Clear current session">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+              Clear Chat
+            </button>
+          </div>
+        </div>
+
+        <!-- Chat Conversation Messages -->
+        <div class="chat-messages" id="chatMessages">
+          <!-- Initial bot welcome message will be rendered here -->
+        </div>
+
+        <!-- Suggested Prompt Chips -->
+        <div class="prompt-chips" id="promptChips">
+          <span class="chips-label">Suggestions:</span>
+          <button class="chip" data-prompt="What are your core technical skills?">Technical Skills</button>
+          <button class="chip" data-prompt="Can you summarize your work experience?">Work Experience</button>
+          <button class="chip" data-prompt="Where did you go to school and what did you study?">Education</button>
+          <button class="chip" data-prompt="What notable achievements or projects have you completed?">Projects & Awards</button>
+        </div>
+
+        <!-- Chat Input Form -->
+        <form class="chat-input-bar" id="chatForm">
+          <div class="input-container">
+            <textarea 
+              id="messageInput" 
+              placeholder="Ask me anything about my experience, education, or skills..." 
+              rows="1"
+              required
+            ></textarea>
+            <button type="submit" id="sendBtn" class="btn-send" title="Send message">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
+          </div>
+          <div class="input-footer">
+            <span>Powered by OpenAI & Local Markdown Knowledge Base</span>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <!-- Global Toast Notification -->
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
